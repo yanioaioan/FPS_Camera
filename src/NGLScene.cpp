@@ -41,6 +41,52 @@ NGLScene::~NGLScene()
   std::cout<<"Shutting down NGL, removing VAO's and Shaders\n";
 }
 
+
+
+
+static bool SphereToPlane(const ngl::Vec3& centerObjPos, const ngl::Vec3& planePoint, const ngl::Vec3& planePointNormal)
+    {
+        //Calculate a vector from the point on the plane to the center of the sphere
+        ngl::Vec3 vecTemp(centerObjPos - planePoint);
+
+        //Calculate the distance: dot product of the new vector with the plane's normal
+        float fDist= vecTemp.dot(planePointNormal);
+
+        float radius=1;
+        if(fDist > radius)
+        {
+            //The sphere is not touching the plane
+            return false;
+        }
+
+        //Else, the sphere is colliding with the plane
+        return true;
+    }
+
+
+
+
+
+float dt = 0.1;
+
+ngl::Vec3 velocity(0,-2,0);
+ngl::Vec3 position = 0;
+ngl::Vec3 force(0,-9.8,0);
+float mass = 1;
+ngl::Vec3 groundNormal (0,1,0);
+
+
+#define MAX(x,y) (((x) < (y)) ? (y) : (x))
+float e=0.8; //when e=0 ->  collision is perfectly inelastic, when e=1 ->  collision is perfectly elastic;
+ngl::Vec3 NGLScene::calculateCollisionResponse(const ngl::Vec3 & normal)
+{
+    float d = velocity.dot (normal);
+    float mag= - ( 1 + e ) * d;
+    float j = MAX( mag, 0.0 );
+    velocity += j* normal;
+    return velocity;
+}
+
 void NGLScene::resizeGL(QResizeEvent *_event)
 {
   m_width=_event->size().width()*devicePixelRatio();
@@ -129,7 +175,7 @@ void NGLScene::initializeGL()
 
   startTimer(10);
 
-  currentCameraPos.set(0,0,15);
+  currentCameraPos.set(0,5,15);
   currentCameraUp.set(0,1,0);
   currentCameraFront.set(0,0,-1);
 }
@@ -137,7 +183,7 @@ void NGLScene::initializeGL()
 static float rot=0.0f;
 void NGLScene::loadMatricesToShader()
 {
-  updateCameraPos();
+  updateCameraPos();  
 
   ngl::ShaderLib *shader=ngl::ShaderLib::instance();
 
@@ -222,7 +268,7 @@ void NGLScene::paintGL()
       m_spinXFace= -89.0f;
 
 
-  std::cout<<"m_spinXFace="<<m_spinXFace<<std::endl;
+//  std::cout<<"m_spinXFace="<<m_spinXFace<<std::endl;
   rotX.rotateX(m_spinXFace);
   rotY.rotateY(m_spinYFace);
   // multiply the rotations
@@ -390,6 +436,13 @@ void NGLScene::keyPressEvent(QKeyEvent *_event)
       std::cout<<"Right Pressed"<<std::endl;
       break;
   }
+  case Qt::Key_Space :
+  {
+      keys[4] = true;
+      std::cout<<"Space Pressed"<<std::endl;
+      break;
+  }
+
 
 
   }
@@ -433,9 +486,37 @@ void NGLScene::keyReleaseEvent(QKeyEvent *_event)
 
 void NGLScene::timerEvent(QTimerEvent * _event)
 {
-    rot+=0.15;
+//    rot+=0.15;
+
+    //Jump implementation
+    if (keys[4]==true)
+    {
+//      position = position + velocity * dt;
+//        currentCameraPos += velocity * dt;
+
+        velocity += ( force / mass ) * dt;
+
+
+
+        ngl::Vec3 planeCenter(0,0.01,0);
+        ngl::Vec3 planeNormal(0,1,0);
+
+        bool collidedwithPlane = SphereToPlane (currentCameraPos, planeCenter, planeNormal);
+
+        if (collidedwithPlane)
+        {
+            velocity = calculateCollisionResponse(planeNormal);
+        }
+
+        currentCameraPos += velocity * dt;
+
+
+    }
+
+
     update();
 }
+
 
 
 void NGLScene::updateCameraPos()
@@ -465,5 +546,11 @@ void NGLScene::updateCameraPos()
             currentCameraPos +=newCamPos;
         }
     }
+
+    //make Camera stay at a certain y level (if wanted)
+//    currentCameraPos.m_y=0;
+//    std::cout<<"currentCameraPos.m_y="<<currentCameraPos.m_y<<std::endl;
+
+
 
 }

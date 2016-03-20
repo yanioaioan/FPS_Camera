@@ -166,6 +166,9 @@ private:
 
     ngl::Transformation m_transform;
 
+    ngl::Vec3 calculateCollisionResponse(const ngl::Vec3 & normal);
+
+
 };
 
 
