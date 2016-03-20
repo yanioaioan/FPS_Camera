@@ -69,7 +69,7 @@ static bool SphereToPlane(const ngl::Vec3& centerObjPos, const ngl::Vec3& planeP
 
 float dt = 0.1;
 
-ngl::Vec3 velocity(0,-2,0);
+ngl::Vec3 velocity(0,-10,0);
 ngl::Vec3 position = 0;
 ngl::Vec3 force(0,-9.8,0);
 float mass = 1;
@@ -482,8 +482,7 @@ void NGLScene::keyReleaseEvent(QKeyEvent *_event)
     }
 }
 
-
-
+static int friction=1;
 void NGLScene::timerEvent(QTimerEvent * _event)
 {
 //    rot+=0.15;
@@ -506,6 +505,7 @@ void NGLScene::timerEvent(QTimerEvent * _event)
         if (collidedwithPlane)
         {
             velocity = calculateCollisionResponse(planeNormal);
+            velocity /=friction++;
         }
 
         currentCameraPos += velocity * dt;
