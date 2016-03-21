@@ -32,6 +32,8 @@ NGLScene::NGLScene()
   setTitle("Qt5 Simple NGL Demo");
 
   cameraSpeed =0.05;
+
+  memset(keys, false, sizeof(keys)/sizeof(bool));
 }
 
 
@@ -64,20 +66,57 @@ static bool SphereToPlane(const ngl::Vec3& centerObjPos, const ngl::Vec3& planeP
     }
 
 
+#define MAX(x,y) (((x) < (y)) ? (y) : (x))
+
+static float j=0;
+ngl::Vec3 NGLScene::calculateCoulombFriction(ngl::Vec3 & velocity)
+{
+  /*
+    jt is the magnitude of the friction impulse (pre-cone limit)
+    u is the coefficient of friction [0,1]
+    t in the tangent vector in the direction of sliding
+    v is the the go stone velocity at the contact point
+    r is the contact point minus the center of the go stone
+    I is the inertia tensor of the go stone
+    m is the mass of the go stone
+  */
+//    ngl::Vec3 u(1,0,0);
+//    float m=1;
+
+//    jt= -velocity
+
+//    float d = velocity.dot (normal);
+//    float mag= - ( 1 + e ) * d;
+//    float j = MAX( mag, 0.0 );
+
+    j+=0.1;
+    velocity += -j* ngl::Vec3(0,1,0);
+
+    velocity.m_y= MAX(velocity.m_y,0.0);
+
+    //Stabilized, reset so as to let player press Jump-space again
+    if (velocity.m_y==0)
+    {
+        keys[4]=false;
+        velocity.set(0,-10,0);
+        j=0;
+    }
+
+    return velocity;
+}
 
 
 
 float dt = 0.1;
 
-ngl::Vec3 velocity(0,-10,0);
+ngl::Vec3 velocity(0,0,0);
 ngl::Vec3 position = 0;
 ngl::Vec3 force(0,-9.8,0);
 float mass = 1;
 ngl::Vec3 groundNormal (0,1,0);
 
-
-#define MAX(x,y) (((x) < (y)) ? (y) : (x))
 float e=0.8; //when e=0 ->  collision is perfectly inelastic, when e=1 ->  collision is perfectly elastic;
+
 ngl::Vec3 NGLScene::calculateCollisionResponse(const ngl::Vec3 & normal)
 {
     float d = velocity.dot (normal);
@@ -479,39 +518,81 @@ void NGLScene::keyReleaseEvent(QKeyEvent *_event)
             std::cout<<"Right Released"<<std::endl;
             break;
         }
+        case Qt::Key_Space :
+        {
+            keys[4] = false;
+            velocity.m_y = 0;
+            std::cout<<"Space Pressed"<<std::endl;
+            break;
+        }
+
+
+
     }
 }
 
-static int friction=1;
+static float friction=0.0f;
+float a=1.1;
+float b=2.3;
 void NGLScene::timerEvent(QTimerEvent * _event)
 {
 //    rot+=0.15;
 
-    //Jump implementation
+//    //Jump implementation - rbd collision with artificial friction
+//    if (keys[4]==true)
+//    {
+//        //u=a* ,a=f/mt
+//        //friction+=0.1;
+//        velocity +=  ( force / mass ) * dt;
+
+
+
+//        ngl::Vec3 planeCenter(0,0.01,0);
+//        ngl::Vec3 planeNormal(0,1,0);
+
+//        //correct velocity - apply response impulse if hits the ground
+//        bool collidedwithPlane = SphereToPlane (currentCameraPos, planeCenter, planeNormal);
+
+//        if (collidedwithPlane)
+//        {
+//            velocity = calculateCollisionResponse(planeNormal);
+
+//            velocity = calculateCoulombFriction(velocity);
+//        }
+
+//        currentCameraPos += velocity * dt;
+//    }
+
+
+
+
+    //Jump implementation - rbd collision with artificial friction
     if (keys[4]==true)
     {
-//      position = position + velocity * dt;
-//        currentCameraPos += velocity * dt;
-
-        velocity += ( force / mass ) * dt;
-
-
-
-        ngl::Vec3 planeCenter(0,0.01,0);
-        ngl::Vec3 planeNormal(0,1,0);
-
-        bool collidedwithPlane = SphereToPlane (currentCameraPos, planeCenter, planeNormal);
-
-        if (collidedwithPlane)
+        if (currentCameraPos.m_y == 0) // >=  lets jump on the top of jump
         {
-            velocity = calculateCollisionResponse(planeNormal);
-            velocity /=friction++;
+            velocity.m_y = 20;
         }
-
-        currentCameraPos += velocity * dt;
-
-
+        keys[4]=false;
     }
+
+    //u=a*t
+    velocity +=  (force/mass) *dt;
+    //x=u*t
+    currentCameraPos += velocity * dt;
+
+
+
+    //stay above y=0
+    if(currentCameraPos.m_y<0)
+    {
+        currentCameraPos.m_y=0;
+        velocity.m_y=0;
+    }
+
+    std::cout<<"velocity="<<velocity.m_y<<std::endl;
+
+
 
 
     update();
