@@ -56,6 +56,9 @@ class NGLScene : public QOpenGLWindow
 
     void buildVAO();
 
+
+
+
 private:
     //----------------------------------------------------------------------------------------------------------------------
     /// @brief used to store the x rotation mouse value
@@ -169,6 +172,9 @@ private:
 
     ngl::Vec3 calculateCollisionResponse(const ngl::Vec3 & normal);
     ngl::Vec3 calculateCoulombFriction(ngl::Vec3 & velocity);
+
+
+
 
 
 };
