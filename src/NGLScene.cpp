@@ -8,6 +8,8 @@
 #include <ngl/NGLInit.h>
 #include <ngl/VAOPrimitives.h>
 #include <ngl/ShaderLib.h>
+#include <memory>
+
 //----------------------------------------------------------------------------------------------------------------------
 /// @brief the increment for x/y translation with mouse movement
 //----------------------------------------------------------------------------------------------------------------------
@@ -23,7 +25,7 @@ struct data
   };
 
 
-static GLubyte *pixels = NULL;
+static std::unique_ptr<GLubyte> pixels = NULL;
 static const GLenum FORMAT = GL_RGBA;
 static const GLuint FORMAT_NBYTES = 4;
 static  unsigned int HEIGHT = 500;
@@ -32,7 +34,7 @@ static unsigned int nscreenshots = 0;
 
 
 static void create_ppm(char *prefix, int frame_id, unsigned int width, unsigned int height,
-        unsigned int color_max, unsigned int pixel_nbytes, GLubyte *pixels) {
+        unsigned int color_max, unsigned int pixel_nbytes, const std::unique_ptr<GLubyte> &pixels) {
     size_t i, j, k, cur;
     enum Constants { max_filename = 256 };
     char filename[max_filename];
@@ -42,7 +44,7 @@ static void create_ppm(char *prefix, int frame_id, unsigned int width, unsigned 
     for (i = 0; i < height; i++) {
         for (j = 0; j < width; j++) {
             cur = pixel_nbytes * ((height - i - 1) * width + j);
-            fprintf(f, "%3d %3d %3d ", pixels[cur], pixels[cur + 1], pixels[cur + 2]);
+            fprintf(f, "%3d %3d %3d ", pixels.get()[cur], pixels.get()[cur + 1], pixels.get()[cur + 2]);
         }
         fprintf(f, "\n");
     }
@@ -69,8 +71,6 @@ NGLScene::~NGLScene()
 {
   m_vao->removeVOA();
   std::cout<<"Shutting down NGL, removing VAO's and Shaders\n";
-
-  free(pixels);
 }
 
 
@@ -254,7 +254,7 @@ void NGLScene::initializeGL()
 
 
   glReadBuffer(GL_BACK);
-  pixels = (GLubyte*)malloc(FORMAT_NBYTES * WIDTH * HEIGHT);
+  pixels.reset(new GLubyte[FORMAT_NBYTES * WIDTH * HEIGHT]);
 
 
 }
@@ -387,8 +387,7 @@ void NGLScene::paintGL()
     m_vao->draw();
     m_vao->unbind();
 
-
-    glReadPixels(0, 0, WIDTH, HEIGHT, FORMAT, GL_UNSIGNED_BYTE, pixels);
+    glReadPixels(0, 0, WIDTH, HEIGHT, FORMAT, GL_UNSIGNED_BYTE, pixels.get());
 
 }
 
