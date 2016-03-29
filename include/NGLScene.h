@@ -158,6 +158,7 @@ private:
     ngl::Vec3 currentCameraorigin;
     ngl::Vec3 currentCameraUp;
     ngl::Vec3 currentCameraPos;
+    ngl::Vec3 prevCameraPos;
     ngl::Mat4 viewMatrix;
 
     ngl::Vec3 currentCameraFront;

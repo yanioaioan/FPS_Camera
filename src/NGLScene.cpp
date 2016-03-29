@@ -248,6 +248,7 @@ void NGLScene::initializeGL()
   startTimer(10);
 
   currentCameraPos.set(0,5,15);
+  prevCameraPos=currentCameraPos;
   currentCameraUp.set(0,1,0);
   currentCameraFront.set(0,0,-1);
 
@@ -344,7 +345,7 @@ void NGLScene::paintGL()
   // Rotation based on the mouse position for our global transform
   ngl::Mat4 rotX;
   ngl::Mat4 rotY;
-  // create the rotation matriceswwwww
+  // create the rotation matrices
   if (m_spinXFace> 89.0f)
       m_spinXFace= 89.0f;
   if (m_spinXFace< -89.0f)
@@ -401,8 +402,8 @@ void NGLScene::mouseMoveEvent (QMouseEvent * _event)
   {
     int diffx=_event->x()-m_origX;
     int diffy=_event->y()-m_origY;
-    m_spinXFace += (float) 0.1f * diffy;
-    m_spinYFace += (float) 0.1f * diffx;
+    m_spinXFace += (float) 0.2f * diffy;
+    m_spinYFace += (float) 0.2f * diffx;
     m_origX = _event->x();
     m_origY = _event->y();
     update();
@@ -632,8 +633,19 @@ void NGLScene::timerEvent(QTimerEvent * _event)
 
     //u=a*t
     velocity +=  (force/mass) *dt;
-    //x=u*t
+    //x=u*t..euler integration..
     currentCameraPos += velocity * dt;
+
+
+//    //save current pos
+//    ngl::Vec3 tempPos=currentCameraPos;
+//    //update to new pos using prev pos
+//    currentCameraPos += currentCameraPos-prevCameraPos+(force/mass) *dt*dt;
+//    //xi+1 = xi + (xi - xi-1) + a * dt * dt , verlet integration
+
+//    //set previous camera position (to be used in Verlet Integration)
+//    prevCameraPos=tempPos;
+
 
 
 
