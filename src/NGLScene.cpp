@@ -28,8 +28,8 @@ struct data
 static std::unique_ptr<GLubyte> pixels = NULL;
 static const GLenum FORMAT = GL_RGBA;
 static const GLuint FORMAT_NBYTES = 4;
-static  unsigned int HEIGHT = 500;
-static  unsigned int WIDTH = 500;
+//static  unsigned int HEIGHT = 500;
+//static  unsigned int WIDTH = 500;
 static unsigned int nscreenshots = 0;
 
 
@@ -40,7 +40,7 @@ static void create_ppm(char *prefix, int frame_id, unsigned int width, unsigned 
     char filename[max_filename];
     snprintf(filename, max_filename, "%s%d.ppm", prefix, frame_id);
     FILE *f = fopen(filename, "w");
-    fprintf(f, "P3\n%d %d\n%d\n", width, HEIGHT, 255);
+    fprintf(f, "P3\n%d %d\n%d\n", width, height, 255);
     for (i = 0; i < height; i++) {
         for (j = 0; j < width; j++) {
             cur = pixel_nbytes * ((height - i - 1) * width + j);
@@ -63,6 +63,10 @@ NGLScene::NGLScene()
   cameraSpeed =0.05;
 
   memset(keys, false, sizeof(keys)/sizeof(bool));
+
+  //needed for properly handling saving screenshots while resizing (see resizeGL)
+  m_width=0;
+  m_height=0;
 
 }
 
@@ -158,10 +162,23 @@ ngl::Vec3 NGLScene::calculateCollisionResponse(const ngl::Vec3 & normal)
 
 void NGLScene::resizeGL(QResizeEvent *_event)
 {
-  m_width=_event->size().width()*devicePixelRatio();
-  m_height=_event->size().height()*devicePixelRatio();
   // now set the camera size values as the screen size has changed
   m_cam.setShape(45.0f,(float)width()/height(),0.05f,350.0f);
+
+  //first time it runs
+  if (pixels==nullptr && m_width==0 && m_height==0)
+  {
+      m_width=_event->size().width()*devicePixelRatio();
+      m_height=_event->size().height()*devicePixelRatio();
+      pixels.reset(new GLubyte[FORMAT_NBYTES * m_width * m_height]);
+  }
+  else //delete and allocate properly sized memory to hold the new framebuffer
+  {
+      m_width=_event->size().width()*devicePixelRatio();
+      m_height=_event->size().height()*devicePixelRatio();
+      pixels.reset(new GLubyte[FORMAT_NBYTES * m_width * m_height]);
+
+  }
 
 
 }
@@ -169,8 +186,22 @@ void NGLScene::resizeGL(QResizeEvent *_event)
 void NGLScene::resizeGL(int _w , int _h)
 {
   m_cam.setShape(45.0f,(float)_w/_h,0.05f,350.0f);
-  m_width=_w*devicePixelRatio();
-  m_height=_h*devicePixelRatio();
+
+  // now set the camera size values as the screen size has changed
+  if (pixels==nullptr && m_width==0 && m_height==0)
+  {
+      m_width=_w*devicePixelRatio();
+      m_height=_h*devicePixelRatio();
+      pixels.reset(new GLubyte[FORMAT_NBYTES * m_width * m_height]);
+  }
+  else //delete and allocate properly sized memory to hold the new framebuffer
+  {
+      m_width=_w*devicePixelRatio();
+      m_height=_h*devicePixelRatio();
+      pixels.reset(new GLubyte[FORMAT_NBYTES * m_width * m_height]);
+
+  }
+
 
 }
 
@@ -253,10 +284,8 @@ void NGLScene::initializeGL()
   currentCameraFront.set(0,0,-1);
 
 
-
+  //glReadPixels will read from back buffer
   glReadBuffer(GL_BACK);
-  pixels.reset(new GLubyte[FORMAT_NBYTES * WIDTH * HEIGHT]);
-
 
 }
 
@@ -388,7 +417,6 @@ void NGLScene::paintGL()
     m_vao->draw();
     m_vao->unbind();
 
-    glReadPixels(0, 0, WIDTH, HEIGHT, FORMAT, GL_UNSIGNED_BYTE, pixels.get());
 
 }
 
@@ -529,7 +557,8 @@ void NGLScene::keyPressEvent(QKeyEvent *_event)
   }
   case Qt::Key_P :
   {
-      create_ppm("tmp", nscreenshots, WIDTH, HEIGHT, 255, FORMAT_NBYTES, pixels);
+      glReadPixels(0, 0, m_width, m_height, FORMAT, GL_UNSIGNED_BYTE, pixels.get());
+      create_ppm("tmp", nscreenshots, m_width, m_height, 255, FORMAT_NBYTES, pixels);
       nscreenshots++;
       std::cout<<"Save Image"<<std::endl;
       break;
