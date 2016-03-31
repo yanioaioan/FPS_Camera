@@ -10,6 +10,10 @@
 #include <ngl/ShaderLib.h>
 #include <memory>
 
+#include <Magick++.h>
+#include <Magick++/Blob.h>
+
+
 //----------------------------------------------------------------------------------------------------------------------
 /// @brief the increment for x/y translation with mouse movement
 //----------------------------------------------------------------------------------------------------------------------
@@ -558,7 +562,23 @@ void NGLScene::keyPressEvent(QKeyEvent *_event)
   case Qt::Key_P :
   {
       glReadPixels(0, 0, m_width, m_height, FORMAT, GL_UNSIGNED_BYTE, pixels.get());
-      create_ppm("tmp", nscreenshots, m_width, m_height, 255, FORMAT_NBYTES, pixels);
+
+      //create_ppm("tmp", nscreenshots, m_width, m_height, 255, FORMAT_NBYTES, pixels);
+
+
+
+//      Magick::Blob b( pixels.get(), FORMAT_NBYTES * m_width * m_height );
+//      Magick::Image saveimage(b);
+//      saveimage.write("subimageGcrop.png");
+
+      // now create an image data block
+      Magick::Image output(m_width,m_height,"RGBA",Magick::CharPixel,pixels.get());
+      // set the output image depth to 16 bit
+      output.depth(16);
+      // write the file
+      output.write("Test.png");
+
+
       nscreenshots++;
       std::cout<<"Save Image"<<std::endl;
       break;
@@ -695,9 +715,10 @@ void NGLScene::timerEvent(QTimerEvent * _event)
 
 
 
+
 void NGLScene::updateCameraPos()
 {
-//    if(sizeof(keys)!=0)
+    //    if(sizeof(keys)!=0)
     {
         if (keys[0]==true) currentCameraPos += cameraSpeed * currentCameraFront;
         if (keys[1]==true) currentCameraPos -= cameraSpeed * currentCameraFront;

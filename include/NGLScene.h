@@ -58,7 +58,6 @@ class NGLScene : public QOpenGLWindow
 
 
 
-
 private:
     //----------------------------------------------------------------------------------------------------------------------
     /// @brief used to store the x rotation mouse value
